@@ -1,7 +1,9 @@
 package com.anshuit.writeit.exceptions;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.http.HttpStatus;
@@ -11,14 +13,24 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.anshuit.writeit.dto.ApiResponseDto;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
 	@ExceptionHandler(CustomException.class)
-	public ResponseEntity<ApiResponse> handleCustomException(CustomException ex) {
-		return new ResponseEntity<ApiResponse>(
-				new ApiResponse(ex.getMessage(), ex.getTimestamp(), ex.getStatus(), ex.getStatus().value()),
-				ex.getStatus());
+	public ResponseEntity<ApiResponseDto> handleCustomException(CustomException ex, HttpServletRequest request) {
+		ApiResponseDto apiResponseDto = ApiResponseDto
+				.builder()
+				.message(ex.getMessage())
+				.timestamp(LocalDateTime.now())
+				.status(ex.getStatus())
+				.statusCode(ex.getStatus().value())
+				.exceptionCode(ex.getExceptionDetailsEnum() == null ? "" : ex.getExceptionDetailsEnum().getExceptionCode())
+				.path(request.getRequestURI())
+				.build();
+
+		return new ResponseEntity<ApiResponseDto>(apiResponseDto, ex.getStatus());
 	}
 
 	// Related to Spring data jpa @Valid Annotation

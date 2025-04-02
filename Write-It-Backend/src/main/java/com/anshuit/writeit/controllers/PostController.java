@@ -1,6 +1,5 @@
 package com.anshuit.writeit.controllers;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,10 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.anshuit.writeit.constants.GlobalConstants;
+import com.anshuit.writeit.dto.ApiResponseDto;
 import com.anshuit.writeit.dto.PostDto;
 import com.anshuit.writeit.dto.PostResponseDto;
 import com.anshuit.writeit.entities.Post;
-import com.anshuit.writeit.exceptions.ApiResponse;
+import com.anshuit.writeit.enums.ApiResponseEnum;
 import com.anshuit.writeit.exceptions.CustomException;
 import com.anshuit.writeit.services.PostService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -43,31 +43,32 @@ public class PostController {
 	@Autowired
 	private ModelMapper modelMapper;
 
-	// CREATE NEW POST [ USING FORM DATA I.E, INPUTS+FILE ]
-	@PostMapping("/users/{username}/posts/{categoryname}")
+	// CREATE NEW POST [ USING FORM DATA I.E, INPUTS + FILE ]
+	@PostMapping("/users/{username}/posts/{categoryName}")
 	public ResponseEntity<PostDto> createNewPostWithFormData(@RequestParam("post") String post,
 			@RequestParam(name = "image", required = false) MultipartFile file,
-			@PathVariable("username") String username, @PathVariable("categoryname") String categoryname) {
+			@PathVariable("username") String username, @PathVariable("categoryName") String categoryName) {
 
-		Post createdpost = null;
+		Post createdPost = null;
 		try {
 			Post postdata = objectMapper.readValue(post, Post.class);
-			createdpost = postService.createPostAndSaveImageInDB(postdata, username, categoryname, file);
+			createdPost = postService.createPostAndSaveImageInDB(postdata, username, categoryName, file);
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
-		return new ResponseEntity<PostDto>(modelMapper.map(createdpost, PostDto.class), HttpStatus.CREATED);
+		PostDto postDto = modelMapper.map(createdPost, PostDto.class);
+		return new ResponseEntity<PostDto>(postDto, HttpStatus.CREATED);
 	}
 
 	// ADD IMAGE TO A POST
-	@PostMapping("/users/{username}/posts/{postid}/image")
-	public ResponseEntity<ApiResponse> addImageToPost(@RequestParam("image") MultipartFile image,
-			@PathVariable("username") String username, @PathVariable("postid") Integer postid) {
+	@PostMapping("/users/{username}/posts/{postId}/image")
+	public ResponseEntity<ApiResponseDto> addImageToPost(@RequestParam("image") MultipartFile image,
+			@PathVariable("username") String username, @PathVariable("postId") int postId) {
 
-		postService.addImageToPost(image, username, postid);
-		ApiResponse apiResponse = new ApiResponse("Image Successfully Added To The Post With Id :" + postid,
-				LocalDateTime.now(), HttpStatus.OK, HttpStatus.OK.value());
-		return new ResponseEntity<ApiResponse>(apiResponse, HttpStatus.OK);
+		postService.addImageToPost(image, username, postId);
+		ApiResponseDto apiResponse = ApiResponseDto
+				.generateApiResponse(ApiResponseEnum.IMAGE_SUCCESSFULLY_ADDED_TO_POST_WITH_ID, postId);
+		return new ResponseEntity<ApiResponseDto>(apiResponse, HttpStatus.OK);
 	}
 
 	// SERVE POST IMAGE
@@ -105,12 +106,14 @@ public class PostController {
 
 	// DELETE SINGLE POST OF USER BY PID
 	@DeleteMapping("/users/{username}/posts/{postid}")
-	public ResponseEntity<ApiResponse> deletePostOfUserByPostId(@PathVariable("username") String username,
+	public ResponseEntity<ApiResponseDto> deletePostOfUserByPostId(@PathVariable("username") String username,
 			@PathVariable("postid") Integer postid) {
 		postService.deletePostById(postid);
-		ApiResponse apiResponse = new ApiResponse("Post Successfully Deleted with id :" + postid, LocalDateTime.now(),
-				HttpStatus.OK, HttpStatus.OK.value());
-		return new ResponseEntity<ApiResponse>(apiResponse, HttpStatus.OK);
+		ApiResponseDto apiResponseDto = ApiResponseDto
+				.generateApiResponse(ApiResponseEnum.POST_SUCCESSFULLY_DELETED_WITH_ID, postid);
+		return new ResponseEntity<ApiResponseDto>(
+				apiResponseDto,
+				ApiResponseEnum.POST_SUCCESSFULLY_DELETED_WITH_ID.getHttpStatus());
 	}
 
 	// UPDATE SINGLE POST OF USER BY PID

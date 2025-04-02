@@ -1,8 +1,5 @@
 package com.anshuit.writeit.controllers;
 
-import java.time.LocalDateTime;
-
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,35 +9,37 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.anshuit.writeit.dto.ApiResponseDto;
 import com.anshuit.writeit.dto.CommentDto;
 import com.anshuit.writeit.entities.Comment;
-import com.anshuit.writeit.exceptions.ApiResponse;
+import com.anshuit.writeit.enums.ApiResponseEnum;
 import com.anshuit.writeit.services.CommentService;
+import com.anshuit.writeit.services.DataTransferServiceImpl;
 
 @RestController
 public class CommentController {
 
 	@Autowired
-	CommentService commentService;
+	private CommentService commentService;
 
 	@Autowired
-	ModelMapper modelMapper;
+	private DataTransferServiceImpl dataTransferService;
 
-	@PostMapping("/users/{username}/posts/{postid}/comments")
+	@PostMapping("/users/{username}/posts/{postId}/comments")
 	public ResponseEntity<CommentDto> addNewComment(@RequestBody Comment comment,
-			@PathVariable("username") String username, @PathVariable("postid") Integer postid) {
-		Comment createdComment = commentService.createComment(comment, username, postid);
-		return new ResponseEntity<>(modelMapper.map(createdComment, CommentDto.class), HttpStatus.CREATED);
+			@PathVariable("username") String username, @PathVariable("postId") int postId) {
+		Comment createdComment = commentService.createComment(comment, username, postId);
+		CommentDto commentDto = dataTransferService.mapCommentToCommentDto(createdComment);
+		return new ResponseEntity<>(commentDto, HttpStatus.CREATED);
 	}
 
-	// delete single comment of a post
-	@DeleteMapping("/users/{username}/posts/{postid}/comments/{commentid}")
-	public ResponseEntity<ApiResponse> deleteCommentByCommentId(@PathVariable("username") String username,
-			@PathVariable("postid") Integer postid, @PathVariable("commentid") Integer commentid) {
+	@DeleteMapping("/users/{username}/posts/{postId}/comments/{commentId}")
+	public ResponseEntity<ApiResponseDto> deleteCommentByCommentId(@PathVariable("username") String username,
+			@PathVariable("postId") int postId, @PathVariable("commentId") int commentId) {
 
-		commentService.deleteComment(username, commentid);
-		ApiResponse apiResponse = new ApiResponse("Comment Successfully Deleted with id :" + commentid,
-				LocalDateTime.now(), HttpStatus.OK, HttpStatus.OK.value());
-		return new ResponseEntity<ApiResponse>(apiResponse, HttpStatus.OK);
+		commentService.deleteComment(username, commentId);
+		ApiResponseDto apiResponseDto = ApiResponseDto
+				.generateApiResponse(ApiResponseEnum.COMMENT_SUCCESSFULLY_DELETED_WITH_ID, commentId);
+		return new ResponseEntity<ApiResponseDto>(apiResponseDto, HttpStatus.OK);
 	}
 }

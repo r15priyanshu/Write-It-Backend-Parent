@@ -1,8 +1,8 @@
 package com.anshuit.writeit.exceptions;
 
-import java.time.LocalDateTime;
-
 import org.springframework.http.HttpStatus;
+
+import com.anshuit.writeit.exceptions.enums.ExceptionDetailsEnum;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,14 +13,17 @@ import lombok.Setter;
 @NoArgsConstructor
 public class CustomException extends RuntimeException {
 	private static final long serialVersionUID = 1L;
-	private String message;
-	private LocalDateTime timestamp;
+	private ExceptionDetailsEnum exceptionDetailsEnum;
 	private HttpStatus status;
-	
-	public CustomException(String message,HttpStatus status)
-	{
-		this.message=message;
-		this.timestamp=LocalDateTime.now();
-		this.status=status;
+
+	public CustomException(String message, HttpStatus status) {
+		super(message);
+		this.status = status;
+	}
+
+	public CustomException(HttpStatus status, ExceptionDetailsEnum exceptionDetailsEnum, Object... args) {
+		super(ExceptionDetailsEnum.getFormattedExceptionMessage(exceptionDetailsEnum, args));
+		this.exceptionDetailsEnum = exceptionDetailsEnum;
+		this.status = status;
 	}
 }

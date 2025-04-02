@@ -1,6 +1,5 @@
 package com.anshuit.writeit.controllers;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,10 +19,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.anshuit.writeit.constants.GlobalConstants;
+import com.anshuit.writeit.dto.ApiResponseDto;
 import com.anshuit.writeit.dto.AppUserDto;
 import com.anshuit.writeit.entities.AppUser;
-import com.anshuit.writeit.exceptions.ApiResponse;
+import com.anshuit.writeit.enums.ApiResponseEnum;
 import com.anshuit.writeit.exceptions.CustomException;
+import com.anshuit.writeit.exceptions.enums.ExceptionDetailsEnum;
 import com.anshuit.writeit.services.DataTransferServiceImpl;
 import com.anshuit.writeit.services.UserService;
 
@@ -43,7 +44,7 @@ public class UserController {
 
 	// GET SINGLE USER
 	@GetMapping("/users/{userId}")
-	public ResponseEntity<AppUserDto> getUserByUserId(@PathVariable Integer userId) {
+	public ResponseEntity<AppUserDto> getUserByUserId(@PathVariable("userId") int userId) {
 		AppUser user = userService.getUserById(userId);
 		AppUserDto userDto = dataTransferService.mapUserToUserDto(user);
 		return new ResponseEntity<AppUserDto>(userDto, HttpStatus.OK);
@@ -54,8 +55,7 @@ public class UserController {
 	public ResponseEntity<byte[]> serveUserProfileImage(@PathVariable("userId") int userId) {
 		AppUser foundUser = userService.getUserById(userId);
 		if (foundUser.getProfilePic().equals(GlobalConstants.DEFAULT_PROFILE_IMAGE_NAME)) {
-			throw new CustomException("Default Image Is Set , Will Be Taken From Frontend : "
-					+ GlobalConstants.DEFAULT_PROFILE_IMAGE_NAME, HttpStatus.OK);
+			throw new CustomException(HttpStatus.OK, ExceptionDetailsEnum.DEFAULT_USER_PROFILE_IMAGE_SET);
 		}
 		// Detect MIME type of image data
 		String contentType = new Tika().detect(foundUser.getImageData());
@@ -75,20 +75,19 @@ public class UserController {
 
 	// DELETE ALL USERS
 	@DeleteMapping("/users")
-	public ResponseEntity<ApiResponse> deleteAllUsers() {
+	public ResponseEntity<ApiResponseDto> deleteAllUsers() {
 		userService.deleteAllUsers();
-		ApiResponse apiResponse = new ApiResponse("All Users Deleted Successfully !!", LocalDateTime.now(),
-				HttpStatus.OK, HttpStatus.OK.value());
-		return new ResponseEntity<>(apiResponse, HttpStatus.OK);
+		ApiResponseDto apiResponse = ApiResponseDto.generateApiResponse(ApiResponseEnum.ALL_USERS_SUCCESSFULLY_DELETED);
+		return new ResponseEntity<>(apiResponse, ApiResponseEnum.ALL_USERS_SUCCESSFULLY_DELETED.getHttpStatus());
 	}
 
 	// DELETE SINGLE USER
 	@DeleteMapping("/users/{userId}")
-	public ResponseEntity<ApiResponse> deleteSingleUser(@PathVariable("userId") int userId) {
+	public ResponseEntity<ApiResponseDto> deleteSingleUser(@PathVariable("userId") int userId) {
 		userService.deleteUserByUserId(userId);
-		ApiResponse apiResponse = new ApiResponse("User Successfully Deleted With UserId :" + userId,
-				LocalDateTime.now(), HttpStatus.OK, HttpStatus.OK.value());
-		return new ResponseEntity<>(apiResponse, HttpStatus.OK);
+		ApiResponseDto apiResponse = ApiResponseDto
+				.generateApiResponse(ApiResponseEnum.USER_SUCCESSFULLY_DELETED_WITH_ID, userId);
+		return new ResponseEntity<>(apiResponse, ApiResponseEnum.USER_SUCCESSFULLY_DELETED_WITH_ID.getHttpStatus());
 	}
 
 	// CREATE NEW USER
@@ -96,7 +95,8 @@ public class UserController {
 	public ResponseEntity<AppUserDto> addNewUser(@Valid @RequestBody AppUserDto userDto) {
 		AppUser user = dataTransferService.mapUserDtoToUser(userDto);
 		AppUser createdUser = userService.createUser(user);
-		return new ResponseEntity<AppUserDto>(dataTransferService.mapUserToUserDto(createdUser), HttpStatus.CREATED);
+		AppUserDto createdUserDto = dataTransferService.mapUserToUserDto(createdUser);
+		return new ResponseEntity<AppUserDto>(createdUserDto, HttpStatus.CREATED);
 	}
 
 	// GET ALL USERS

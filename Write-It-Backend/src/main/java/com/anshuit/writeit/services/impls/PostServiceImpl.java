@@ -1,4 +1,4 @@
-package com.anshuit.writeit.services;
+package com.anshuit.writeit.services.impls;
 
 import java.util.Date;
 import java.util.List;
@@ -25,6 +25,8 @@ import com.anshuit.writeit.exceptions.CustomException;
 import com.anshuit.writeit.repositories.CategoryRepository;
 import com.anshuit.writeit.repositories.PostRepository;
 import com.anshuit.writeit.repositories.UserRepository;
+import com.anshuit.writeit.services.FileService;
+import com.anshuit.writeit.services.PostService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -49,11 +51,11 @@ public class PostServiceImpl implements PostService {
 	@Override
 	public Post createPostAndSaveImageInDB(Post post, String username, String categoryname, MultipartFile file) {
 		AppUser founduser = userRepository.findUserByUsername(username.toLowerCase())
-				.orElseThrow(() -> new CustomException("User Not Found with username : " + username.toLowerCase(),
-						HttpStatus.NOT_FOUND));
+				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND,
+						"User Not Found with username : " + username.toLowerCase()));
 
-		Category foundcategory = categoryRepository.findCategoryByName(categoryname).orElseThrow(
-				() -> new CustomException("Category Not Found with name : " + categoryname, HttpStatus.NOT_FOUND));
+		Category foundcategory = categoryRepository.findCategoryByCategoryName(categoryname).orElseThrow(
+				() -> new CustomException(HttpStatus.NOT_FOUND, "Category Not Found with name : " + categoryname));
 
 		post.setCreatedDate(new Date());
 		post.setCategory(foundcategory);
@@ -66,8 +68,8 @@ public class PostServiceImpl implements PostService {
 				post.setImage(GlobalConstants.POST_IMAGE_UPLOADED);
 			} catch (Exception e) {
 				log.error("Error In Uploading Image along with Post!!");
-				throw new CustomException("Error In Uploading Image along with Post!!",
-						HttpStatus.INTERNAL_SERVER_ERROR);
+				throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR,
+						"Error In Uploading Image along with Post!!");
 			}
 		}
 		return postRepository.save(post);
@@ -76,17 +78,17 @@ public class PostServiceImpl implements PostService {
 	@Override
 	public Post getPostById(Integer id) {
 		return postRepository.findById(id)
-				.orElseThrow(() -> new CustomException("Post not found with id :" + id, HttpStatus.NOT_FOUND));
+				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Post not found with id :" + id));
 	}
 
 	@Override
 	public Post addImageToPost(MultipartFile file, String username, Integer postid) {
 		userRepository.findUserByUsername(username.toLowerCase())
-				.orElseThrow(() -> new CustomException("User Not Found with username : " + username.toLowerCase(),
-						HttpStatus.NOT_FOUND));
+				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND,
+						"User Not Found with username : " + username.toLowerCase()));
 
 		Post foundPost = postRepository.findById(postid)
-				.orElseThrow(() -> new CustomException("Post not found with id :" + postid, HttpStatus.NOT_FOUND));
+				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Post not found with id :" + postid));
 
 		if (file != null && fileService.isImageWithValidExtension(file)) {
 			try {
@@ -95,7 +97,7 @@ public class PostServiceImpl implements PostService {
 				foundPost.setImage(GlobalConstants.POST_IMAGE_UPLOADED);
 			} catch (Exception e) {
 				log.error("Error In Adding Image To A Post!!");
-				throw new CustomException("Error In Adding Image To A Post!!", HttpStatus.INTERNAL_SERVER_ERROR);
+				throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Error In Adding Image To A Post!!");
 			}
 		}
 		return postRepository.save(foundPost);
@@ -104,11 +106,11 @@ public class PostServiceImpl implements PostService {
 	@Override
 	public Post updatePostById(Post newpostdata, Integer postid, String username) {
 		userRepository.findUserByUsername(username.toLowerCase())
-				.orElseThrow(() -> new CustomException("User Not Found with username : " + username.toLowerCase(),
-						HttpStatus.NOT_FOUND));
+				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND,
+						"User Not Found with username : " + username.toLowerCase()));
 
 		Post foundPost = postRepository.findById(postid)
-				.orElseThrow(() -> new CustomException("Post not found with id :" + postid, HttpStatus.NOT_FOUND));
+				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Post not found with id :" + postid));
 
 		foundPost.setTitle(newpostdata.getTitle() == null ? foundPost.getTitle() : newpostdata.getTitle());
 		foundPost.setContent(newpostdata.getContent() == null ? foundPost.getContent() : newpostdata.getContent());
@@ -118,7 +120,7 @@ public class PostServiceImpl implements PostService {
 	@Override
 	public void deletePostById(Integer id) {
 		postRepository.findById(id)
-				.orElseThrow(() -> new CustomException("Post not found with id :" + id, HttpStatus.NOT_FOUND));
+				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Post not found with id :" + id));
 		postRepository.deleteById(id);
 	}
 
@@ -132,8 +134,8 @@ public class PostServiceImpl implements PostService {
 		if (category.equals("All")) {
 			pageinfo = postRepository.findAll(pageable);
 		} else {
-			Category foundcategory = categoryRepository.findCategoryByName(category).orElseThrow(
-					() -> new CustomException("Category not found with name : " + category, HttpStatus.NOT_FOUND));
+			Category foundcategory = categoryRepository.findCategoryByCategoryName(category).orElseThrow(
+					() -> new CustomException(HttpStatus.NOT_FOUND, "Category not found with name : " + category));
 
 			pageinfo = postRepository.findPostByCategory(foundcategory, pageable);
 		}
@@ -172,7 +174,7 @@ public class PostServiceImpl implements PostService {
 	public List<Post> getAllPostsByUser(String username, boolean mostrecentfirst) {
 		Sort sort = Sort.by(mostrecentfirst ? Direction.DESC : Direction.ASC, "date");
 		AppUser founduser = userRepository.findUserByUsername(username)
-				.orElseThrow(() -> new CustomException("Username not found in DB :" + username, HttpStatus.NOT_FOUND));
+				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Username not found in DB :" + username));
 		return postRepository.findPostByUser(founduser, sort);
 	}
 }

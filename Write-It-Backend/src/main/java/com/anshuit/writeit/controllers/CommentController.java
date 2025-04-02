@@ -14,7 +14,7 @@ import com.anshuit.writeit.dto.CommentDto;
 import com.anshuit.writeit.entities.Comment;
 import com.anshuit.writeit.enums.ApiResponseEnum;
 import com.anshuit.writeit.services.CommentService;
-import com.anshuit.writeit.services.DataTransferServiceImpl;
+import com.anshuit.writeit.services.impls.DataTransferServiceImpl;
 
 @RestController
 public class CommentController {

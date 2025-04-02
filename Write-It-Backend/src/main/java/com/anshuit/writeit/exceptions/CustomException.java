@@ -13,10 +13,10 @@ import lombok.Setter;
 @NoArgsConstructor
 public class CustomException extends RuntimeException {
 	private static final long serialVersionUID = 1L;
-	private ExceptionDetailsEnum exceptionDetailsEnum;
 	private HttpStatus status;
+	private ExceptionDetailsEnum exceptionDetailsEnum;
 
-	public CustomException(String message, HttpStatus status) {
+	public CustomException(HttpStatus status, String message) {
 		super(message);
 		this.status = status;
 	}

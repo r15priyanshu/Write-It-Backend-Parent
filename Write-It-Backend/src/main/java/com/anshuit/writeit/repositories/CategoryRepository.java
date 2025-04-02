@@ -8,5 +8,5 @@ import com.anshuit.writeit.entities.Category;
 
 public interface CategoryRepository extends JpaRepository<Category,Integer> {
 
-	Optional<Category> findCategoryByName(String categoryname);
+	Optional<Category> findCategoryByCategoryName(String categoryName);
 }

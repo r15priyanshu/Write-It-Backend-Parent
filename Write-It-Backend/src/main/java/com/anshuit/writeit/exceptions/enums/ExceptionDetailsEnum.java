@@ -5,19 +5,19 @@ import com.anshuit.writeit.utils.GlobalUtils;
 
 public enum ExceptionDetailsEnum {
 
-	// User Related Constants
-	DEFAULT_USER_PROFILE_IMAGE_SET("","Default User Profile Image Is Set , Will Be Taken From Frontend : "+ GlobalConstants.DEFAULT_PROFILE_IMAGE_NAME),
+	// USER RELATED CONSTANTS
+	DEFAULT_USER_PROFILE_IMAGE_SET(null,"Default User Profile Image Is Set , Will Be Taken From Frontend : "+ GlobalConstants.DEFAULT_PROFILE_IMAGE_NAME),
 
-	USER_NOT_FOUND_WITH_ID("1001", "User not found with id : %s"),
-
-	USER_NOT_FOUND_WITH_EMAIL("1002", "User not found with email : %s"),
-
-	USER_ALREADY_EXIST_WITH_EMAIL("1003", "User already exist with email : %s"),
-
-	USER_PASSWORD_DID_NOT_MATCH("1004", "Invalid Password !! Password did not match !!"),
-
-	// Role Related Constants
-	ROLE_NOT_FOUND_WITH_ID("1051", "Role not found with roleId : %s");
+	USER_NOT_FOUND_WITH_ID("1001", "User Not Found With UserId : %d"),
+	
+	USERNAME_ALREADY_TAKEN("1002","Username Already Taken : %s"),
+	
+	USER_PASSWORD_DID_NOT_MATCH("1003", "Invalid Password !! Password Did Not Match !!"),
+	
+	// ROLE RELATED CONSTANTS
+	ROLE_NOT_FOUND_WITH_ID("1051", "Role Not Found With RoleId : %d"),
+	
+	ROLE_NOT_FOUND_WITH_ROLE_NAME("1051", "Role Not Found With Role Name : %s");
 
 	private final String exceptionCode;
 	private final String exceptionMessage;

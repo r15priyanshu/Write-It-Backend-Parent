@@ -7,17 +7,21 @@ import com.anshuit.writeit.dto.AppUserDto;
 import com.anshuit.writeit.entities.AppUser;
 
 public interface UserService {
-	AppUser createUser(AppUser user);
+	AppUser saveOrUpdateUser(AppUser user);
 
-	AppUser updateUserByUserId(AppUserDto userDto, int userId);
+	AppUser createUser(AppUser user);
 
 	Optional<AppUser> getUserByIdOptional(int userId);
 
 	AppUser getUserById(int userId);
 
+	Optional<AppUser> getUserByUsernameOptional(String username);
+
+	List<AppUser> getAllUsers();
+
+	AppUser updateUserByUserId(AppUserDto userDto, int userId);
+
 	boolean deleteUserByUserId(int userId);
 
 	boolean deleteAllUsers();
-
-	List<AppUser> getAllUsers();
 }

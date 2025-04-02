@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.tika.Tika;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -25,8 +24,8 @@ import com.anshuit.writeit.entities.AppUser;
 import com.anshuit.writeit.enums.ApiResponseEnum;
 import com.anshuit.writeit.exceptions.CustomException;
 import com.anshuit.writeit.exceptions.enums.ExceptionDetailsEnum;
-import com.anshuit.writeit.services.DataTransferServiceImpl;
 import com.anshuit.writeit.services.UserService;
+import com.anshuit.writeit.services.impls.DataTransferServiceImpl;
 
 import jakarta.validation.Valid;
 
@@ -37,10 +36,16 @@ public class UserController {
 	private UserService userService;
 
 	@Autowired
-	private ModelMapper modelMapper;
-
-	@Autowired
 	private DataTransferServiceImpl dataTransferService;
+
+	// CREATE NEW USER
+	@PostMapping("/users")
+	public ResponseEntity<AppUserDto> addNewUser(@Valid @RequestBody AppUserDto userDto) {
+		AppUser user = dataTransferService.mapUserDtoToUser(userDto);
+		AppUser createdUser = userService.createUser(user);
+		AppUserDto createdUserDto = dataTransferService.mapUserToUserDto(createdUser);
+		return new ResponseEntity<AppUserDto>(createdUserDto, HttpStatus.CREATED);
+	}
 
 	// GET SINGLE USER
 	@GetMapping("/users/{userId}")
@@ -48,6 +53,41 @@ public class UserController {
 		AppUser user = userService.getUserById(userId);
 		AppUserDto userDto = dataTransferService.mapUserToUserDto(user);
 		return new ResponseEntity<AppUserDto>(userDto, HttpStatus.OK);
+	}
+
+	// GET ALL USERS
+	@GetMapping("/users")
+	public ResponseEntity<List<AppUserDto>> getAllUsers() {
+		List<AppUserDto> allUsersDto = userService.getAllUsers().stream()
+				.map(user -> dataTransferService.mapUserToUserDto(user)).collect(Collectors.toList());
+		return new ResponseEntity<>(allUsersDto, HttpStatus.OK);
+	}
+
+	// UPDATE SINGLE USER
+	@PutMapping("/users/{userId}")
+	public ResponseEntity<AppUserDto> updateUserByUserId(@Valid @RequestBody AppUserDto userDto,
+			@PathVariable("userId") int userId) {
+		AppUser updatedUser = userService.updateUserByUserId(userDto, userId);
+		AppUserDto updatedUserDto = dataTransferService.mapUserToUserDto(updatedUser);
+		return new ResponseEntity<AppUserDto>(updatedUserDto, HttpStatus.OK);
+	}
+
+	// DELETE SINGLE USER
+	@DeleteMapping("/users/{userId}")
+	public ResponseEntity<ApiResponseDto> deleteSingleUser(@PathVariable("userId") int userId) {
+		userService.deleteUserByUserId(userId);
+		ApiResponseDto apiResponseDto = ApiResponseDto
+				.generateApiResponse(ApiResponseEnum.USER_SUCCESSFULLY_DELETED_WITH_ID, userId);
+		return new ResponseEntity<>(apiResponseDto, ApiResponseEnum.USER_SUCCESSFULLY_DELETED_WITH_ID.getHttpStatus());
+	}
+
+	// DELETE ALL USERS
+	@DeleteMapping("/users")
+	public ResponseEntity<ApiResponseDto> deleteAllUsers() {
+		userService.deleteAllUsers();
+		ApiResponseDto apiResponseDto = ApiResponseDto
+				.generateApiResponse(ApiResponseEnum.ALL_USERS_SUCCESSFULLY_DELETED);
+		return new ResponseEntity<>(apiResponseDto, ApiResponseEnum.ALL_USERS_SUCCESSFULLY_DELETED.getHttpStatus());
 	}
 
 	// SERVE USER IMAGE
@@ -62,48 +102,5 @@ public class UserController {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.parseMediaType(contentType));
 		return new ResponseEntity<>(foundUser.getImageData(), headers, HttpStatus.OK);
-	}
-
-	// UPDATE SINGLE USER
-	@PutMapping("/users/{userId}")
-	public ResponseEntity<AppUserDto> updateUserByUserId(@Valid @RequestBody AppUserDto userDto,
-			@PathVariable("userId") int userId) {
-		AppUser updatedUser = userService.updateUserByUserId(userDto, userId);
-		AppUserDto updatedUserDto = dataTransferService.mapUserToUserDto(updatedUser);
-		return new ResponseEntity<AppUserDto>(updatedUserDto, HttpStatus.OK);
-	}
-
-	// DELETE ALL USERS
-	@DeleteMapping("/users")
-	public ResponseEntity<ApiResponseDto> deleteAllUsers() {
-		userService.deleteAllUsers();
-		ApiResponseDto apiResponse = ApiResponseDto.generateApiResponse(ApiResponseEnum.ALL_USERS_SUCCESSFULLY_DELETED);
-		return new ResponseEntity<>(apiResponse, ApiResponseEnum.ALL_USERS_SUCCESSFULLY_DELETED.getHttpStatus());
-	}
-
-	// DELETE SINGLE USER
-	@DeleteMapping("/users/{userId}")
-	public ResponseEntity<ApiResponseDto> deleteSingleUser(@PathVariable("userId") int userId) {
-		userService.deleteUserByUserId(userId);
-		ApiResponseDto apiResponse = ApiResponseDto
-				.generateApiResponse(ApiResponseEnum.USER_SUCCESSFULLY_DELETED_WITH_ID, userId);
-		return new ResponseEntity<>(apiResponse, ApiResponseEnum.USER_SUCCESSFULLY_DELETED_WITH_ID.getHttpStatus());
-	}
-
-	// CREATE NEW USER
-	@PostMapping("/users")
-	public ResponseEntity<AppUserDto> addNewUser(@Valid @RequestBody AppUserDto userDto) {
-		AppUser user = dataTransferService.mapUserDtoToUser(userDto);
-		AppUser createdUser = userService.createUser(user);
-		AppUserDto createdUserDto = dataTransferService.mapUserToUserDto(createdUser);
-		return new ResponseEntity<AppUserDto>(createdUserDto, HttpStatus.CREATED);
-	}
-
-	// GET ALL USERS
-	@GetMapping("/users")
-	public ResponseEntity<List<AppUserDto>> getAllUsers() {
-		List<AppUserDto> allUsers = userService.getAllUsers().stream()
-				.map(user -> modelMapper.map(user, AppUserDto.class)).collect(Collectors.toList());
-		return new ResponseEntity<>(allUsers, HttpStatus.OK);
 	}
 }

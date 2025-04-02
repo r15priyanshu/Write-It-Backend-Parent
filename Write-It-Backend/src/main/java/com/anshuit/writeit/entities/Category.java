@@ -20,9 +20,9 @@ import lombok.Setter;
 public class Category {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Integer categoryId;
-	private String name;
-	private String description;
+	private int categoryId;
+	private String categoryName;
+	private String categoryDescription;
 
 	@OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
 	List<Post> posts = new ArrayList<>();

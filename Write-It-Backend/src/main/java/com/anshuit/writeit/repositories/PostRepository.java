@@ -11,13 +11,14 @@ import com.anshuit.writeit.entities.AppUser;
 import com.anshuit.writeit.entities.Category;
 import com.anshuit.writeit.entities.Post;
 
+public interface PostRepository extends JpaRepository<Post, Integer> {
 
-
-public interface PostRepository extends JpaRepository<Post,Integer> {
-	
 	List<Post> findPostByUser(AppUser username);
-	List<Post> findPostByUser(AppUser username,Sort sort);
+
+	List<Post> findPostByUser(AppUser username, Sort sort);
+
 	List<Post> findPostByCategory(Category category);
-	Page<Post> findPostByCategory(Category category,Pageable pageable);
+
+	Page<Post> findPostByCategory(Category category, Pageable pageable);
 
 }

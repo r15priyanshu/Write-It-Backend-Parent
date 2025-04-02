@@ -1,4 +1,4 @@
-package com.anshuit.writeit.services;
+package com.anshuit.writeit.services.impls;
 
 import java.util.Date;
 
@@ -13,6 +13,7 @@ import com.anshuit.writeit.exceptions.CustomException;
 import com.anshuit.writeit.repositories.CommentRepository;
 import com.anshuit.writeit.repositories.PostRepository;
 import com.anshuit.writeit.repositories.UserRepository;
+import com.anshuit.writeit.services.CommentService;
 
 @Service
 public class CommentServiceImpl implements CommentService {
@@ -29,9 +30,9 @@ public class CommentServiceImpl implements CommentService {
 	@Override
 	public Comment createComment(Comment comment, String username, Integer postid) {
 		AppUser founduser = userRepository.findUserByUsername(username).orElseThrow(
-				() -> new CustomException("Username not found with name : " + username, HttpStatus.NOT_FOUND));
+				() -> new CustomException(HttpStatus.NOT_FOUND, "Username not found with name : " + username));
 		Post foundpost = postRepository.findById(postid)
-				.orElseThrow(() -> new CustomException("Post not found with id : " + postid, HttpStatus.NOT_FOUND));
+				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Post not found with id : " + postid));
 		comment.setCommentDate(new Date());
 		comment.setUser(founduser);
 		comment.setPost(foundpost);
@@ -41,9 +42,9 @@ public class CommentServiceImpl implements CommentService {
 	@Override
 	public void deleteComment(String username, Integer commentid) {
 		userRepository.findUserByUsername(username).orElseThrow(
-				() -> new CustomException("Username not found with name : " + username, HttpStatus.NOT_FOUND));
+				() -> new CustomException(HttpStatus.NOT_FOUND, "Username not found with name : " + username));
 		commentRepository.findById(commentid).orElseThrow(
-				() -> new CustomException("Comment not found with id : " + commentid, HttpStatus.NOT_FOUND));
+				() -> new CustomException(HttpStatus.NOT_FOUND, "Comment not found with id : " + commentid));
 		commentRepository.deleteById(commentid);
 	}
 

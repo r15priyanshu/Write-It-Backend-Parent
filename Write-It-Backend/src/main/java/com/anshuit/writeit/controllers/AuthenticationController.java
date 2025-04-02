@@ -11,7 +11,7 @@ import com.anshuit.writeit.dto.AppUserDto;
 import com.anshuit.writeit.entities.AppUser;
 import com.anshuit.writeit.exceptions.CustomException;
 import com.anshuit.writeit.repositories.UserRepository;
-import com.anshuit.writeit.services.DataTransferServiceImpl;
+import com.anshuit.writeit.services.impls.DataTransferServiceImpl;
 
 @RestController
 public class AuthenticationController {
@@ -25,7 +25,7 @@ public class AuthenticationController {
 	@PostMapping("/auth/login")
 	public ResponseEntity<AppUserDto> performLogin(@RequestBody AppUser user) {
 		AppUser founduser = userRepository.findUserByUsernameAndPassword(user.getUsername(), user.getPassword())
-				.orElseThrow(() -> new CustomException("Invalid Credentials !!", HttpStatus.UNAUTHORIZED));
+				.orElseThrow(() -> new CustomException(HttpStatus.UNAUTHORIZED, "Invalid Credentials !!"));
 		AppUserDto userDto = dataTransferService.mapUserToUserDto(founduser);
 		return new ResponseEntity<AppUserDto>(userDto, HttpStatus.OK);
 	}

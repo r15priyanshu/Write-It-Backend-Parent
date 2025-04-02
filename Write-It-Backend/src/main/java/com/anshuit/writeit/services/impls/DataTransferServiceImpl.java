@@ -1,4 +1,4 @@
-package com.anshuit.writeit.services;
+package com.anshuit.writeit.services.impls;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;

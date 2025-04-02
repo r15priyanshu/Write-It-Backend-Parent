@@ -76,8 +76,8 @@ public class PostController {
 	public ResponseEntity<byte[]> servePostImage(@PathVariable("postid") Integer postid) {
 		Post foundPost = postService.getPostById(postid);
 		if (foundPost.getImage().equals(GlobalConstants.DEFAULT_POST_IMAGE_NAME)) {
-			throw new CustomException("Default Post Image is Set , Will Be Taken From Frontend : "
-					+ GlobalConstants.DEFAULT_POST_IMAGE_NAME, HttpStatus.OK);
+			throw new CustomException(HttpStatus.OK, "Default Post Image is Set , Will Be Taken From Frontend : "
+					+ GlobalConstants.DEFAULT_POST_IMAGE_NAME);
 		}
 		// Detect MIME type of image data
 		String contentType = new Tika().detect(foundPost.getImageData());
@@ -111,8 +111,7 @@ public class PostController {
 		postService.deletePostById(postid);
 		ApiResponseDto apiResponseDto = ApiResponseDto
 				.generateApiResponse(ApiResponseEnum.POST_SUCCESSFULLY_DELETED_WITH_ID, postid);
-		return new ResponseEntity<ApiResponseDto>(
-				apiResponseDto,
+		return new ResponseEntity<ApiResponseDto>(apiResponseDto,
 				ApiResponseEnum.POST_SUCCESSFULLY_DELETED_WITH_ID.getHttpStatus());
 	}
 

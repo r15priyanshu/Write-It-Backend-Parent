@@ -10,13 +10,13 @@ import com.anshuit.writeit.constants.GlobalConstants;
 import com.anshuit.writeit.entities.Category;
 import com.anshuit.writeit.entities.Role;
 import com.anshuit.writeit.repositories.CategoryRepository;
-import com.anshuit.writeit.repositories.RoleRepository;
+import com.anshuit.writeit.services.RoleService;
 
 @SpringBootApplication
 public class WriteItBackendApplication implements ApplicationRunner {
 
 	@Autowired
-	private RoleRepository roleRepository;
+	private RoleService roleService;
 
 	@Autowired
 	private CategoryRepository categoryRepository;
@@ -31,30 +31,30 @@ public class WriteItBackendApplication implements ApplicationRunner {
 		int roleId1 = GlobalConstants.DEFAULT_ROLE_ONE_ID;
 		int roleId2 = GlobalConstants.DEFAULT_ROLE_TWO_ID;
 
-		roleRepository.findById(roleId1)
-				.orElseGet(() -> roleRepository.save(new Role(GlobalConstants.DEFAULT_ROLE_ONE)));
+		roleService.getRoleByIdOptional(roleId1)
+				.orElseGet(() -> roleService.saveOrUpdateRole(new Role(GlobalConstants.DEFAULT_ROLE_ONE)));
 
-		roleRepository.findById(roleId2)
-				.orElseGet(() -> roleRepository.save(new Role(GlobalConstants.DEFAULT_ROLE_TWO)));
+		roleService.getRoleByIdOptional(roleId2)
+				.orElseGet(() -> roleService.saveOrUpdateRole(new Role(GlobalConstants.DEFAULT_ROLE_TWO)));
 
 		// CREATE 3 CATEGORIES BY DEFAULT
 		Category category;
 		if (categoryRepository.findById(1).isEmpty()) {
 			category = new Category();
-			category.setName("Technology");
-			category.setDescription("Content regarding Tools and Technology.");
+			category.setCategoryName("Technology");
+			category.setCategoryDescription("Content regarding Tools and Technology.");
 			categoryRepository.save(category);
 		}
 		if (categoryRepository.findById(2).isEmpty()) {
 			category = new Category();
-			category.setName("Sports");
-			category.setDescription("Content regarding Sports.");
+			category.setCategoryName("Sports");
+			category.setCategoryDescription("Content regarding Sports.");
 			categoryRepository.save(category);
 		}
 		if (categoryRepository.findById(3).isEmpty()) {
 			category = new Category();
-			category.setName("Bollywood");
-			category.setDescription("Content regarding Bollywood.");
+			category.setCategoryName("Bollywood");
+			category.setCategoryDescription("Content regarding Bollywood.");
 			categoryRepository.save(category);
 		}
 	}

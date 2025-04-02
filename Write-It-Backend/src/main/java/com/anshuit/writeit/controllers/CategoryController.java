@@ -19,7 +19,7 @@ import com.anshuit.writeit.dto.CategoryDto;
 import com.anshuit.writeit.entities.Category;
 import com.anshuit.writeit.enums.ApiResponseEnum;
 import com.anshuit.writeit.services.CategoryService;
-import com.anshuit.writeit.services.DataTransferServiceImpl;
+import com.anshuit.writeit.services.impls.DataTransferServiceImpl;
 
 import jakarta.validation.Valid;
 
@@ -34,7 +34,7 @@ public class CategoryController {
 
 	@PostMapping("/categories")
 	public ResponseEntity<CategoryDto> createCategory(@Valid @RequestBody Category category) {
-		Category createdcategory = categoryService.createCategory(category);
+		Category createdcategory = categoryService.saveOrUpdateCategory(category);
 		CategoryDto createdCategoryDto = dataTransferService.mapCategoryToCategoryDto(createdcategory);
 		return new ResponseEntity<>(createdCategoryDto, HttpStatus.CREATED);
 	}

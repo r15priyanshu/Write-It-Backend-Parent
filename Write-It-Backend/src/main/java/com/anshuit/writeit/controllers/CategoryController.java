@@ -33,10 +33,18 @@ public class CategoryController {
 	private DataTransferServiceImpl dataTransferService;
 
 	@PostMapping("/categories")
-	public ResponseEntity<CategoryDto> createCategory(@Valid @RequestBody Category category) {
-		Category createdcategory = categoryService.saveOrUpdateCategory(category);
-		CategoryDto createdCategoryDto = dataTransferService.mapCategoryToCategoryDto(createdcategory);
+	public ResponseEntity<CategoryDto> createCategory(@Valid @RequestBody CategoryDto categoryDto) {
+		Category category = dataTransferService.mapCategoryDtoToCategory(categoryDto);
+		Category createdCategory = categoryService.createCategory(category);
+		CategoryDto createdCategoryDto = dataTransferService.mapCategoryToCategoryDto(createdCategory);
 		return new ResponseEntity<>(createdCategoryDto, HttpStatus.CREATED);
+	}
+
+	@GetMapping("/categories/{categoryId}")
+	public ResponseEntity<CategoryDto> getCategoryById(@PathVariable("categoryId") int categoryId) {
+		Category category = categoryService.getCategoryById(categoryId);
+		CategoryDto categoryDto = dataTransferService.mapCategoryToCategoryDto(category);
+		return new ResponseEntity<>(categoryDto, HttpStatus.OK);
 	}
 
 	@GetMapping("/categories")
@@ -46,17 +54,10 @@ public class CategoryController {
 		return new ResponseEntity<>(allCategoriesDto, HttpStatus.OK);
 	}
 
-	@GetMapping("/categories/{categoryId}")
-	public ResponseEntity<CategoryDto> getCategoryById(@PathVariable("cid") int categoryId) {
-		Category category = categoryService.getCategoryById(categoryId);
-		CategoryDto categoryDto = dataTransferService.mapCategoryToCategoryDto(category);
-		return new ResponseEntity<>(categoryDto, HttpStatus.OK);
-	}
-
 	@PutMapping("/categories/{categoryId}")
 	public ResponseEntity<CategoryDto> updateCategoryById(@PathVariable("categoryId") int categoryId,
 			@Valid @RequestBody Category category) {
-		Category updatedCategory = categoryService.updateCategory(category, categoryId);
+		Category updatedCategory = categoryService.updateCategoryById(category, categoryId);
 		CategoryDto updatedCategoryDto = dataTransferService.mapCategoryToCategoryDto(updatedCategory);
 		return new ResponseEntity<>(updatedCategoryDto, HttpStatus.OK);
 	}

@@ -27,5 +27,6 @@ public class AppUserDto {
 	private String about;
 	private String profilePic;
 	private String imageData;
+	//private List<PostDto> allPosts;
 	private List<RoleDto> roles;
 }

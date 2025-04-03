@@ -2,9 +2,9 @@ package com.anshuit.writeit.services.impls;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,11 +22,12 @@ import com.anshuit.writeit.entities.AppUser;
 import com.anshuit.writeit.entities.Category;
 import com.anshuit.writeit.entities.Post;
 import com.anshuit.writeit.exceptions.CustomException;
-import com.anshuit.writeit.repositories.CategoryRepository;
+import com.anshuit.writeit.exceptions.enums.ExceptionDetailsEnum;
 import com.anshuit.writeit.repositories.PostRepository;
-import com.anshuit.writeit.repositories.UserRepository;
+import com.anshuit.writeit.services.CategoryService;
 import com.anshuit.writeit.services.FileService;
 import com.anshuit.writeit.services.PostService;
+import com.anshuit.writeit.services.UserService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -37,29 +38,29 @@ public class PostServiceImpl implements PostService {
 	private PostRepository postRepository;
 
 	@Autowired
-	private UserRepository userRepository;
+	private UserService userService;
 
 	@Autowired
-	private CategoryRepository categoryRepository;
-
-	@Autowired
-	private ModelMapper modelMapper;
+	private CategoryService categoryService;
 
 	@Autowired
 	private FileService fileService;
 
+	@Autowired
+	private DataTransferServiceImpl dataTransferService;
+
 	@Override
-	public Post createPostAndSaveImageInDB(Post post, String username, String categoryname, MultipartFile file) {
-		AppUser founduser = userRepository.findUserByUsername(username.toLowerCase())
-				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND,
-						"User Not Found with username : " + username.toLowerCase()));
+	public Post saveOrUpdatePost(Post post) {
+		return postRepository.save(post);
+	}
 
-		Category foundcategory = categoryRepository.findCategoryByCategoryName(categoryname).orElseThrow(
-				() -> new CustomException(HttpStatus.NOT_FOUND, "Category Not Found with name : " + categoryname));
-
+	@Override
+	public Post createPostAndSaveImageInDB(Post post, int userId, int categoryId, MultipartFile file) {
+		AppUser foundUser = userService.getUserById(userId);
+		Category foundCategory = categoryService.getCategoryById(categoryId);
 		post.setCreatedDate(new Date());
-		post.setCategory(foundcategory);
-		post.setUser(founduser);
+		post.setCategory(foundCategory);
+		post.setUser(foundUser);
 
 		if (file != null && fileService.isImageWithValidExtension(file)) {
 			try {
@@ -67,28 +68,19 @@ public class PostServiceImpl implements PostService {
 				post.setImageData(imageData);
 				post.setImage(GlobalConstants.POST_IMAGE_UPLOADED);
 			} catch (Exception e) {
-				log.error("Error In Uploading Image along with Post!!");
+				log.error("Error In Uploading Image Along With Post!!");
 				throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR,
-						"Error In Uploading Image along with Post!!");
+						ExceptionDetailsEnum.ERROR_IN_UPLOADING_IMAGE_WITH_POST);
 			}
 		}
-		return postRepository.save(post);
+		Post createdPost = this.saveOrUpdatePost(post);
+		return createdPost;
 	}
 
 	@Override
-	public Post getPostById(Integer id) {
-		return postRepository.findById(id)
-				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Post not found with id :" + id));
-	}
-
-	@Override
-	public Post addImageToPost(MultipartFile file, String username, Integer postid) {
-		userRepository.findUserByUsername(username.toLowerCase())
-				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND,
-						"User Not Found with username : " + username.toLowerCase()));
-
-		Post foundPost = postRepository.findById(postid)
-				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Post not found with id :" + postid));
+	public Post addImageToPost(MultipartFile file, int userId, int postId) {
+		userService.getUserById(userId);
+		Post foundPost = this.getPostById(postId);
 
 		if (file != null && fileService.isImageWithValidExtension(file)) {
 			try {
@@ -97,24 +89,83 @@ public class PostServiceImpl implements PostService {
 				foundPost.setImage(GlobalConstants.POST_IMAGE_UPLOADED);
 			} catch (Exception e) {
 				log.error("Error In Adding Image To A Post!!");
-				throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR, "Error In Adding Image To A Post!!");
+				throw new CustomException(HttpStatus.INTERNAL_SERVER_ERROR,
+						ExceptionDetailsEnum.ERROR_IN_UPLOADING_IMAGE_TO_ALREADY_UPLOADED_POST, postId);
 			}
 		}
-		return postRepository.save(foundPost);
+		return this.saveOrUpdatePost(foundPost);
 	}
 
 	@Override
-	public Post updatePostById(Post newpostdata, Integer postid, String username) {
-		userRepository.findUserByUsername(username.toLowerCase())
-				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND,
-						"User Not Found with username : " + username.toLowerCase()));
+	public Optional<Post> getPostByIdOptional(int postId) {
+		return postRepository.findById(postId);
+	}
 
-		Post foundPost = postRepository.findById(postid)
-				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Post not found with id :" + postid));
+	@Override
+	public Post getPostById(int postId) {
+		Post foundPost = getPostByIdOptional(postId).orElseThrow(
+				() -> new CustomException(HttpStatus.NOT_FOUND, ExceptionDetailsEnum.POST_NOT_FOUND_WITH_ID, postId));
+		return foundPost;
+	}
 
-		foundPost.setTitle(newpostdata.getTitle() == null ? foundPost.getTitle() : newpostdata.getTitle());
-		foundPost.setContent(newpostdata.getContent() == null ? foundPost.getContent() : newpostdata.getContent());
-		return postRepository.save(foundPost);
+	@Override
+	public PostResponseDto getAllPostsByCategoryId(int categoryId, int pageNumber, int pageSize,
+			boolean mostRecentFirst) {
+		Sort sort = Sort.by(mostRecentFirst ? Direction.DESC : Direction.ASC, "createdDate");
+		Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+		Page<Post> pageInfo = null;
+
+		if (categoryId == 0) {
+			pageInfo = postRepository.findAll(pageable);
+		} else {
+			Category foundCategory = categoryService.getCategoryById(categoryId);
+			pageInfo = postRepository.findPostByCategory(foundCategory, pageable);
+		}
+		List<Post> posts = pageInfo.getContent();
+		List<PostDto> postsDtos = posts.stream().map(post -> dataTransferService.mapPostToPostDto(post))
+				.collect(Collectors.toList());
+
+		PostResponseDto postResponseDto = new PostResponseDto();
+		postResponseDto.setPosts(postsDtos);
+		postResponseDto.setCurrentpage(pageInfo.getNumber());
+		postResponseDto.setIslastpage(pageInfo.isLast());
+		postResponseDto.setTotalpage(pageInfo.getTotalPages());
+		postResponseDto.setTotalposts(pageInfo.getTotalElements());
+		return postResponseDto;
+	}
+
+	@Override
+	public PostResponseDto getAllPosts(int pageNumber, int pageSize, boolean mostRecentFirst) {
+		Sort sort = Sort.by(mostRecentFirst ? Direction.DESC : Direction.ASC, "createdDate");
+		Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+		Page<Post> pageInfo = postRepository.findAll(pageable);
+		List<Post> posts = pageInfo.getContent();
+		List<PostDto> postsDtos = posts.stream().map(post -> dataTransferService.mapPostToPostDto(post))
+				.collect(Collectors.toList());
+
+		PostResponseDto postResponseDto = new PostResponseDto();
+		postResponseDto.setPosts(postsDtos);
+		postResponseDto.setCurrentpage(pageInfo.getNumber());
+		postResponseDto.setIslastpage(pageInfo.isLast());
+		postResponseDto.setTotalpage(pageInfo.getTotalPages());
+		postResponseDto.setTotalposts(pageInfo.getTotalElements());
+		return postResponseDto;
+	}
+
+	@Override
+	public List<Post> getAllPostsByUserId(int userId, boolean mostRecentFirst) {
+		Sort sort = Sort.by(mostRecentFirst ? Direction.DESC : Direction.ASC, "createdDate");
+		AppUser foundUser = userService.getUserById(userId);
+		return postRepository.findPostByUser(foundUser, sort);
+	}
+
+	@Override
+	public Post updatePostById(Post newPostData, int postId, int userId) {
+		userService.getUserById(userId);
+		Post foundPost = this.getPostById(postId);
+		foundPost.setTitle(newPostData.getTitle() == null ? foundPost.getTitle() : newPostData.getTitle());
+		foundPost.setContent(newPostData.getContent() == null ? foundPost.getContent() : newPostData.getContent());
+		return this.saveOrUpdatePost(foundPost);
 	}
 
 	@Override
@@ -124,57 +175,4 @@ public class PostServiceImpl implements PostService {
 		postRepository.deleteById(id);
 	}
 
-	@Override
-	public PostResponseDto getAllPostsByCategory(String category, Integer pagenumber, Integer pagesize,
-			boolean mostrecentfirst) {
-		Sort sort = Sort.by(mostrecentfirst ? Direction.DESC : Direction.ASC, "date");
-		Pageable pageable = PageRequest.of(pagenumber, pagesize, sort);
-		Page<Post> pageinfo = null;
-
-		if (category.equals("All")) {
-			pageinfo = postRepository.findAll(pageable);
-		} else {
-			Category foundcategory = categoryRepository.findCategoryByCategoryName(category).orElseThrow(
-					() -> new CustomException(HttpStatus.NOT_FOUND, "Category not found with name : " + category));
-
-			pageinfo = postRepository.findPostByCategory(foundcategory, pageable);
-		}
-		List<Post> posts = pageinfo.getContent();
-		List<PostDto> postsdtos = posts.stream().map(post -> modelMapper.map(post, PostDto.class))
-				.collect(Collectors.toList());
-
-		PostResponseDto postResponseDto = new PostResponseDto();
-		postResponseDto.setPosts(postsdtos);
-		postResponseDto.setCurrentpage(pageinfo.getNumber());
-		postResponseDto.setIslastpage(pageinfo.isLast());
-		postResponseDto.setTotalpage(pageinfo.getTotalPages());
-		postResponseDto.setTotalposts(pageinfo.getTotalElements());
-		return postResponseDto;
-	}
-
-	@Override
-	public PostResponseDto getAllPosts(Integer pagenumber, Integer pagesize, boolean mostrecentfirst) {
-		Sort sort = Sort.by(mostrecentfirst ? Direction.DESC : Direction.ASC, "date");
-		Pageable pageable = PageRequest.of(pagenumber, pagesize, sort);
-		Page<Post> pageinfo = postRepository.findAll(pageable);
-		List<Post> posts = pageinfo.getContent();
-		List<PostDto> postsdtos = posts.stream().map(post -> modelMapper.map(post, PostDto.class))
-				.collect(Collectors.toList());
-
-		PostResponseDto postResponseDto = new PostResponseDto();
-		postResponseDto.setPosts(postsdtos);
-		postResponseDto.setCurrentpage(pageinfo.getNumber());
-		postResponseDto.setIslastpage(pageinfo.isLast());
-		postResponseDto.setTotalpage(pageinfo.getTotalPages());
-		postResponseDto.setTotalposts(pageinfo.getTotalElements());
-		return postResponseDto;
-	}
-
-	@Override
-	public List<Post> getAllPostsByUser(String username, boolean mostrecentfirst) {
-		Sort sort = Sort.by(mostrecentfirst ? Direction.DESC : Direction.ASC, "date");
-		AppUser founduser = userRepository.findUserByUsername(username)
-				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Username not found in DB :" + username));
-		return postRepository.findPostByUser(founduser, sort);
-	}
 }

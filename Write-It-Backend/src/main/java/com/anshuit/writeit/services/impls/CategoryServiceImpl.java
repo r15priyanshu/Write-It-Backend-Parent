@@ -1,6 +1,7 @@
 package com.anshuit.writeit.services.impls;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import com.anshuit.writeit.entities.Category;
 import com.anshuit.writeit.exceptions.CustomException;
+import com.anshuit.writeit.exceptions.enums.ExceptionDetailsEnum;
 import com.anshuit.writeit.repositories.CategoryRepository;
 import com.anshuit.writeit.services.CategoryService;
 
@@ -23,34 +25,40 @@ public class CategoryServiceImpl implements CategoryService {
 	}
 
 	@Override
-	public Category updateCategory(Category category, Integer id) {
-		Category foundcategory = categoryRepository.findById(id)
-				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Category not found with id :" + id));
-		foundcategory.setCategoryName(category.getCategoryName());
-		foundcategory.setCategoryDescription(category.getCategoryDescription());
-		return categoryRepository.save(foundcategory);
+	public Category createCategory(Category category) {
+		return this.saveOrUpdateCategory(category);
 	}
 
 	@Override
-	public void deleteCategory(Integer id) {
-		categoryRepository.findById(id)
-				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Category not found with id :" + id));
-		categoryRepository.deleteById(id);
+	public Optional<Category> getCategoryByIdOptional(int categoryId) {
+		return categoryRepository.findById(categoryId);
 	}
 
 	@Override
-	public Category getCategoryById(Integer id) {
-		Category foundcategory = categoryRepository.findById(id)
-				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND, "Category not found with id :" + id));
-		return foundcategory;
+	public Category getCategoryById(int categoryId) {
+		Category foundCategory = this.getCategoryByIdOptional(categoryId)
+				.orElseThrow(() -> new CustomException(HttpStatus.NOT_FOUND,
+						ExceptionDetailsEnum.CATEGORY_NOT_FOUND_WITH_ID, categoryId));
+		return foundCategory;
 	}
 
 	@Override
 	public List<Category> getAllCategories() {
-		List<Category> allcategories = categoryRepository.findAll();
-		if (allcategories.size() == 0)
-			throw new CustomException(HttpStatus.NOT_FOUND, "No Category found");
-		return allcategories;
+		List<Category> allCategories = categoryRepository.findAll();
+		return allCategories;
 	}
 
+	@Override
+	public Category updateCategoryById(Category category, int categoryId) {
+		Category foundCategory = this.getCategoryById(categoryId);
+		foundCategory.setCategoryName(category.getCategoryName());
+		foundCategory.setCategoryDescription(category.getCategoryDescription());
+		return this.saveOrUpdateCategory(foundCategory);
+	}
+
+	@Override
+	public void deleteCategory(int categoryId) {
+		this.getCategoryById(categoryId);
+		categoryRepository.deleteById(categoryId);
+	}
 }

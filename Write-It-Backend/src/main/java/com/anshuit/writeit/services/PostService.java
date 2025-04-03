@@ -1,6 +1,7 @@
 package com.anshuit.writeit.services;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.web.multipart.MultipartFile;
 
@@ -8,21 +9,23 @@ import com.anshuit.writeit.dto.PostResponseDto;
 import com.anshuit.writeit.entities.Post;
 
 public interface PostService {
+	Post saveOrUpdatePost(Post post);
 
-	Post createPostAndSaveImageInDB(Post post, String username, String categoryname, MultipartFile file);
+	Post createPostAndSaveImageInDB(Post post, int userId, int categoryId, MultipartFile file);
 
-	Post getPostById(Integer id);
+	Post addImageToPost(MultipartFile file, int userId, int postId);
 
-	Post addImageToPost(MultipartFile image, String username, Integer postid);
+	Optional<Post> getPostByIdOptional(int postId);
 
-	Post updatePostById(Post newpostdata, Integer postid, String username);
+	Post getPostById(int postId);
+
+	PostResponseDto getAllPosts(int pageNumber, int pageSize, boolean mostRecentFirst);
+
+	PostResponseDto getAllPostsByCategoryId(int categoryId, int pageNumber, int pageSize, boolean mostRecentFirst);
+
+	List<Post> getAllPostsByUserId(int userId, boolean mostRecentFirst);
+
+	Post updatePostById(Post newPostData, int postId, int userId);
 
 	void deletePostById(Integer id);
-
-	PostResponseDto getAllPosts(Integer pagenumber, Integer pagesize, boolean mostrecentfirst);
-
-	PostResponseDto getAllPostsByCategory(String category, Integer pagenumber, Integer pagesize,
-			boolean mostrecentfirst);
-
-	List<Post> getAllPostsByUser(String username, boolean mostrecentfirst);
 }

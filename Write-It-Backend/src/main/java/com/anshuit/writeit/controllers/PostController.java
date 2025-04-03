@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.tika.Tika;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -27,7 +26,9 @@ import com.anshuit.writeit.dto.PostResponseDto;
 import com.anshuit.writeit.entities.Post;
 import com.anshuit.writeit.enums.ApiResponseEnum;
 import com.anshuit.writeit.exceptions.CustomException;
+import com.anshuit.writeit.exceptions.enums.ExceptionDetailsEnum;
 import com.anshuit.writeit.services.PostService;
+import com.anshuit.writeit.services.impls.DataTransferServiceImpl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -41,43 +42,42 @@ public class PostController {
 	private ObjectMapper objectMapper;
 
 	@Autowired
-	private ModelMapper modelMapper;
+	private DataTransferServiceImpl dataTransferService;
 
 	// CREATE NEW POST [ USING FORM DATA I.E, INPUTS + FILE ]
-	@PostMapping("/users/{username}/posts/{categoryName}")
+	@PostMapping("/users/{userId}/posts/{categoryId}")
 	public ResponseEntity<PostDto> createNewPostWithFormData(@RequestParam("post") String post,
-			@RequestParam(name = "image", required = false) MultipartFile file,
-			@PathVariable("username") String username, @PathVariable("categoryName") String categoryName) {
+			@RequestParam(name = "image", required = false) MultipartFile file, @PathVariable("userId") int userId,
+			@PathVariable("categoryId") int categoryId) {
 
 		Post createdPost = null;
 		try {
-			Post postdata = objectMapper.readValue(post, Post.class);
-			createdPost = postService.createPostAndSaveImageInDB(postdata, username, categoryName, file);
+			Post postData = objectMapper.readValue(post, Post.class);
+			createdPost = postService.createPostAndSaveImageInDB(postData, userId, categoryId, file);
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
-		PostDto postDto = modelMapper.map(createdPost, PostDto.class);
+		PostDto postDto = dataTransferService.mapPostToPostDto(createdPost);
 		return new ResponseEntity<PostDto>(postDto, HttpStatus.CREATED);
 	}
 
 	// ADD IMAGE TO A POST
-	@PostMapping("/users/{username}/posts/{postId}/image")
+	@PostMapping("/users/{userId}/posts/{postId}/image")
 	public ResponseEntity<ApiResponseDto> addImageToPost(@RequestParam("image") MultipartFile image,
-			@PathVariable("username") String username, @PathVariable("postId") int postId) {
+			@PathVariable("userId") int userId, @PathVariable("postId") int postId) {
 
-		postService.addImageToPost(image, username, postId);
+		postService.addImageToPost(image, userId, postId);
 		ApiResponseDto apiResponse = ApiResponseDto
 				.generateApiResponse(ApiResponseEnum.IMAGE_SUCCESSFULLY_ADDED_TO_POST_WITH_ID, postId);
 		return new ResponseEntity<ApiResponseDto>(apiResponse, HttpStatus.OK);
 	}
 
 	// SERVE POST IMAGE
-	@GetMapping(value = "/images/servepostimage/{postid}")
-	public ResponseEntity<byte[]> servePostImage(@PathVariable("postid") Integer postid) {
-		Post foundPost = postService.getPostById(postid);
+	@GetMapping(value = "/images/servePostImage/{postId}")
+	public ResponseEntity<byte[]> servePostImage(@PathVariable("postId") int postId) {
+		Post foundPost = postService.getPostById(postId);
 		if (foundPost.getImage().equals(GlobalConstants.DEFAULT_POST_IMAGE_NAME)) {
-			throw new CustomException(HttpStatus.OK, "Default Post Image is Set , Will Be Taken From Frontend : "
-					+ GlobalConstants.DEFAULT_POST_IMAGE_NAME);
+			throw new CustomException(HttpStatus.OK, ExceptionDetailsEnum.DEFAULT_POST_IMAGE_SET);
 		}
 		// Detect MIME type of image data
 		String contentType = new Tika().detect(foundPost.getImageData());
@@ -86,72 +86,72 @@ public class PostController {
 		return new ResponseEntity<>(foundPost.getImageData(), headers, HttpStatus.OK);
 	}
 
-	// GET ALL POSTS OF USER BY USERNAME
-	@GetMapping("/users/{username}/posts")
-	public ResponseEntity<List<PostDto>> getPostByUsername(@PathVariable("username") String username,
-			@RequestParam(name = "mostrecentfirst", defaultValue = "true", required = false) Boolean mostrecentfirst) {
-		List<PostDto> allPostsByUser = postService.getAllPostsByUser(username, mostrecentfirst).stream()
-				.map(post -> modelMapper.map(post, PostDto.class)).collect(Collectors.toList());
+	// GET ALL POSTS OF USER BY USERID
+	@GetMapping("/users/{userId}/posts")
+	public ResponseEntity<List<PostDto>> getPostByUsername(@PathVariable("userId") int userId,
+			@RequestParam(name = "mostRecentFirst", defaultValue = "true", required = false) boolean mostRecentFirst) {
+		List<PostDto> allPostsByUser = postService.getAllPostsByUserId(userId, mostRecentFirst).stream()
+				.map(post -> dataTransferService.mapPostToPostDto(post)).collect(Collectors.toList());
 
 		return new ResponseEntity<List<PostDto>>(allPostsByUser, HttpStatus.OK);
 	}
 
-	// GET SINGLE POST OF USER BY PID
-	@GetMapping("/users/{username}/posts/{postid}")
-	public ResponseEntity<PostDto> getPostOfUserByPostId(@PathVariable("username") String username,
-			@PathVariable("postid") Integer postid) {
-		Post post = postService.getPostById(postid);
-		return new ResponseEntity<PostDto>(modelMapper.map(post, PostDto.class), HttpStatus.OK);
+	// GET SINGLE POST OF USER BY POSTID
+	@GetMapping("/users/{userId}/posts/{postId}")
+	public ResponseEntity<PostDto> getPostOfUserByPostId(@PathVariable("userId") int userId,
+			@PathVariable("postId") int postId) {
+		Post post = postService.getPostById(postId);
+		PostDto postDto = dataTransferService.mapPostToPostDto(post);
+		return new ResponseEntity<PostDto>(postDto, HttpStatus.OK);
 	}
 
 	// DELETE SINGLE POST OF USER BY PID
-	@DeleteMapping("/users/{username}/posts/{postid}")
+	@DeleteMapping("/users/{username}/posts/{postId}")
 	public ResponseEntity<ApiResponseDto> deletePostOfUserByPostId(@PathVariable("username") String username,
-			@PathVariable("postid") Integer postid) {
-		postService.deletePostById(postid);
+			@PathVariable("postId") int postId) {
+		postService.deletePostById(postId);
 		ApiResponseDto apiResponseDto = ApiResponseDto
-				.generateApiResponse(ApiResponseEnum.POST_SUCCESSFULLY_DELETED_WITH_ID, postid);
+				.generateApiResponse(ApiResponseEnum.POST_SUCCESSFULLY_DELETED_WITH_ID, postId);
 		return new ResponseEntity<ApiResponseDto>(apiResponseDto,
 				ApiResponseEnum.POST_SUCCESSFULLY_DELETED_WITH_ID.getHttpStatus());
 	}
 
 	// UPDATE SINGLE POST OF USER BY PID
-	@PutMapping("/users/{username}/posts/{postid}")
-	public ResponseEntity<PostDto> updatePostOfUserByPostId(@PathVariable("username") String username,
-			@PathVariable("postid") Integer postid, @RequestBody Post newpostdata) {
-		Post updatedpost = postService.updatePostById(newpostdata, postid, username);
-
-		return new ResponseEntity<PostDto>(modelMapper.map(updatedpost, PostDto.class), HttpStatus.OK);
+	@PutMapping("/users/{userId}/posts/{postId}")
+	public ResponseEntity<PostDto> updatePostOfUserByPostId(@PathVariable("userId") int userId,
+			@PathVariable("postId") int postId, @RequestBody PostDto newPostDataDto) {
+		Post newPostData = dataTransferService.mapPostDtoToPost(newPostDataDto);
+		Post updatedPost = postService.updatePostById(newPostData, postId, userId);
+		PostDto updatedPostDto = dataTransferService.mapPostToPostDto(updatedPost);
+		return new ResponseEntity<PostDto>(updatedPostDto, HttpStatus.OK);
 	}
 
 	// GET POST BY POSTID
-	@GetMapping("/posts/{postid}")
-	public ResponseEntity<PostDto> getPostByPostId(@PathVariable("postid") Integer postid) {
-		Post post = postService.getPostById(postid);
-		return new ResponseEntity<PostDto>(modelMapper.map(post, PostDto.class), HttpStatus.OK);
+	@GetMapping("/posts/{postId}")
+	public ResponseEntity<PostDto> getPostByPostId(@PathVariable("postId") int postId) {
+		Post post = postService.getPostById(postId);
+		PostDto postDto = dataTransferService.mapPostToPostDto(post);
+		return new ResponseEntity<PostDto>(postDto, HttpStatus.OK);
 	}
 
-	// http://localhost:8080/api/posts/category/CSE
-	// GET ALL POST BY CATEGORY
-	@GetMapping("/posts/category/{categoryname}")
-	public ResponseEntity<PostResponseDto> getAllPostsByCategory(@PathVariable("categoryname") String categoryname,
-			@RequestParam(value = "pagenumber", defaultValue = "0", required = false) Integer pagenumber,
-			@RequestParam(value = "pagesize", defaultValue = "5", required = false) Integer pagesize,
-			@RequestParam(value = "mostrecentfirst", defaultValue = "true", required = false) boolean mostrecentfirst) {
-		PostResponseDto allPostsByCategory = postService.getAllPostsByCategory(categoryname, pagenumber, pagesize,
-				mostrecentfirst);
+	// GET ALL POST BY CATEGORY-ID
+	@GetMapping("/posts/category/{categoryId}")
+	public ResponseEntity<PostResponseDto> getAllPostsByCategory(@PathVariable("categoryId") int categoryId,
+			@RequestParam(value = "pageNumber", defaultValue = "0", required = false) int pageNumber,
+			@RequestParam(value = "pageSize", defaultValue = "5", required = false) int pageSize,
+			@RequestParam(value = "mostRecentFirst", defaultValue = "true", required = false) boolean mostRecentFirst) {
+		PostResponseDto allPostsByCategory = postService.getAllPostsByCategoryId(categoryId, pageNumber, pageSize,
+				mostRecentFirst);
 		return new ResponseEntity<PostResponseDto>(allPostsByCategory, HttpStatus.OK);
 	}
 
 	// GET ALL POSTS
 	@GetMapping("/posts")
 	public ResponseEntity<PostResponseDto> getAllPosts(
-			@RequestParam(value = "pagenumber", defaultValue = "0", required = false) Integer pagenumber,
-			@RequestParam(value = "pagesize", defaultValue = "5", required = false) Integer pagesize,
-			@RequestParam(value = "mostrecentfirst", defaultValue = "true", required = false) boolean mostrecentfirst) {
-		PostResponseDto allPosts = postService.getAllPosts(pagenumber, pagesize, mostrecentfirst);
-
+			@RequestParam(value = "pageNumber", defaultValue = "0", required = false) int pageNumber,
+			@RequestParam(value = "pageSize", defaultValue = "5", required = false) int pageSize,
+			@RequestParam(value = "mostRecentFirst", defaultValue = "true", required = false) boolean mostRecentFirst) {
+		PostResponseDto allPosts = postService.getAllPosts(pageNumber, pageSize, mostRecentFirst);
 		return new ResponseEntity<>(allPosts, HttpStatus.OK);
 	}
-
 }
